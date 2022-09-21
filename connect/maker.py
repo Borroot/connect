@@ -145,7 +145,7 @@ def count():
 
 def show():
     print("\n", board, sep="", end="")
-    print(*history, sep="")
+    if board.w <= 10: print(*history, sep="")
     if len(history) > 0: print()
 
 
