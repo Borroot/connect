@@ -1,6 +1,10 @@
 from player import Player
 
-class Alphabeta(ABC):
+class Alphabeta(Player):
 
-    def play(self, board):
+    def move(self, board):
         pass
+
+
+    def __str__(self):
+        return "alphabeta"

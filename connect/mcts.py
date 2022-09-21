@@ -1,9 +1,13 @@
 from player import Player
 
-class MCTS(ABC):
+class MCTS(Player):
 
-    def play(self, board):
+    def move(self, board):
         pass
+
+
+    def __str__(self):
+        return "mcts"
 
 
 # # main function for the Monte Carlo Tree Search

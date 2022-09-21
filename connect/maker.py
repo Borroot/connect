@@ -159,7 +159,7 @@ def help_msg():
         "n new [w h n]: new game",
         "l load [w h n] codex: load game",
         "m mirror: mirror the board",
-        "s shift r|l: shift the board"
+        "s shift r|l: shift the board",
         "c count: print movecount",
         "p print: print board",
         "q quit: quit the maker",
