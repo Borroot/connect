@@ -1,3 +1,11 @@
+from player import Player
+
+class MCTS(ABC):
+
+    def play(self, board):
+        pass
+
+
 # # main function for the Monte Carlo Tree Search
 # def monte_carlo_tree_search(root):
 #     while resources_left(time, computational power):
