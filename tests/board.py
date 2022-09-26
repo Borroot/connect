@@ -1,5 +1,10 @@
-from connect.board import Board, Result
+import sys, os
+sys.path.insert(0, os.getcwd() + "/connect")
+
+from result import Result
+from board import Board
 import unittest
+
 
 class TestBoard(unittest.TestCase):
 
@@ -74,7 +79,3 @@ class TestBoard(unittest.TestCase):
 
         board3 = Board.from_codex(7, 6, 4, "000111112222233303303")
         self.assertEqual(board3.isover(), Result.WIN)
-
-
-if __name__ == '__main__':
-    unittest.main()

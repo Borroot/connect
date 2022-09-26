@@ -1,4 +1,5 @@
 from board import Board
+from rand import Random
 import random as rand
 
 
@@ -44,7 +45,7 @@ def random():
         print("game is already over")
         return
 
-    move(rand.choice(board.moves()))
+    move(Random().move(board))
 
 
 def new(args):
@@ -140,7 +141,7 @@ def shift(args):
 
 
 def count():
-    print("movecount: {}".format(len(history)))
+    print("movecount: {}".format(board.movecount))
 
 
 def show():

@@ -1,10 +1,4 @@
-from enum import Enum
-
-
-class Result(Enum):
-
-    DRAW = 0
-    WIN = 1
+from result import Result
 
 
 class Board:
@@ -17,12 +11,13 @@ class Board:
     def __init__(self, width, height, n):
         """ Initialize a board with the given width and height. The game is won
         if one of the players has n consecutive stones. """
-        assert width % 2 == 1, "width should be odd"
         self.w = width
         self.h = height
         self.n = n
         self.prev = None  # previous move column
         self.onturn = 0  # 0 represents player 1 and 1 represents player 2
+        self.movecount = 0
+        self.ML = width * height  # movecount limit
         self.grid = [[Board.E] * width for _ in range(height)]
 
 
@@ -50,6 +45,8 @@ class Board:
         copy = Board(self.w, self.h, self.n)
         copy.prev = self.prev
         copy.onturn = self.onturn
+        copy.movecount = self.movecount
+        copy.ML = self.ML
         copy.grid = [row[:] for row in self.grid]
         return copy
 
@@ -82,6 +79,7 @@ class Board:
                 self.grid[y][x] = self.onturn
                 self.prev = x
                 break
+        self.movecount += 1
         self.onturn ^= 1  # swap onturn
 
 
