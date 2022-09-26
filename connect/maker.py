@@ -1,6 +1,7 @@
 from board import Board
 from rand import Random
-import random as rand
+from negamax import Negamax
+from random import choice
 
 
 board = Board(7, 6, 4)
@@ -46,6 +47,32 @@ def random():
         return
 
     move(Random().move(board))
+
+
+def negamax(args):
+    if board.isover() is not None:
+        print("game is already over")
+        return
+
+    depth = None
+
+    if len(args) > 0:
+        if args[0].isdigit() and int(args[0]) > 0:
+            depth = int(args[0])
+        else:
+            print("please provide a valid depth")
+            return
+
+    bestmoves, bestvalue, stats = Negamax().move(board, depth)
+    chosen = choice(bestmoves)
+
+    print(
+        "{} -> {}".format(bestmoves, chosen),
+        "eval: {}".format(bestvalue),
+        stats,
+        sep="\n"
+    )
+    move(chosen)
 
 
 def new(args):
@@ -154,8 +181,9 @@ def help_msg():
     print(
         "[0-n): make move",
         "u undo: undo last move",
-        # "e eval [timeout]: evaluate state",
-        # "b best [timeout]: make best move",
+        # "e eval [t]: evaluate state",
+        # "b best [t]: make best move",
+        "n negamax [d t]: make negamax move",
         "r random: make random move",
         "n new [w h n]: new game",
         "l load [w h n] codex: load game",
@@ -187,6 +215,8 @@ def maker():
             move(int(cmd))
         elif cmd == "u" or cmd == "undo":
             undo()
+        elif cmd == "n" or cmd == "negamax":
+            negamax(args)
         elif cmd == "r" or cmd == "random":
             random()
         elif cmd == "n" or cmd == "new":

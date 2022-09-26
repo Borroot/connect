@@ -8,6 +8,10 @@ class Result(Enum):
     WIN  =  1
 
 
+    def __neg__(self):
+        return Result(-self.value)
+
+
 class HResult(Enum):
     """Heuristic Result"""
 

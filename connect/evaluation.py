@@ -1,4 +1,5 @@
 from result import Result, HResult
+import math
 
 
 class Eval:
@@ -15,10 +16,7 @@ class Eval:
     #     |        |         |          |      |        |        |         |         |        |         |
     # -2ML-HL-2 -ML-HL-2 -ML-HL-1     -ML-1   -ML       0        ML      ML+1     ML+HL+1  ML+HL+2   2ML+HL+2
 
-    MIN = float("-inf")
-    MAX = float("+inf")
-
-    def __init__(self, ML, HL, result, distance_or_heuristic):
+    def __init__(self, ML, HL, result=None, distance_or_heuristic=None, n=None):
         """Create an evaluation from the given result.
 
         :param ML: Movecount Limit which depends on the board used
@@ -28,44 +26,64 @@ class Eval:
         or a heuristic value between 0 and HL
         :returns: evaluation of the board
         """
-        assert distance_or_heuristic >= 0
-        assert (isinstance(result,  Result) and distance_or_heuristic <= ML) or \
-               (isinstance(result, HResult) and distance_or_heuristic <= HL)
-
         self._ML = ML
         self._HL = HL
 
-        if isinstance(result, Result):
-            # normal result
-            d = distance_or_heuristic
-            if   result == Result.Win:
-                self._n =  2 * ML + HL + 2 - d
-            elif result == Result.Loss:
-                self._n = -2 * ML - HL - 2 + d
-            else:
-                self._n = d
+        if n is not None:
+            self._n = n
         else:
-            # heuristic result
-            h = distance_or_heuristic
-            if   result == HResult.Win:
-                self._n =  ML + 1 + h
-            elif result == HResult.Loss:
-                self._n = -ML - 1 - h
+            # Notice that we assume if n is None then result and
+            # distance_or_heuristic are not None, the coder has to ensure this.
+            assert distance_or_heuristic >= 0
+            assert (isinstance(result,  Result) and distance_or_heuristic <= ML) or \
+                   (isinstance(result, HResult) and distance_or_heuristic <= HL)
+
+            if isinstance(result, Result):
+                # normal result with distance
+                if   result == Result.WIN:
+                    self._n =  2 * ML + HL + 2 - distance_or_heuristic
+                elif result == Result.LOSS:
+                    self._n = -2 * ML - HL - 2 + distance_or_heuristic
+                else:
+                    self._n = distance_or_heuristic
             else:
-                self._n = 0
+                # heuristic result
+                if   result == HResult.WIN:
+                    self._n =  ML + 1 + distance_or_heuristic
+                elif result == HResult.LOSS:
+                    self._n = -ML - 1 - distance_or_heuristic
+                else:
+                    self._n = 0
+
+
+    @classmethod
+    def min(cls):
+        return cls(0, 0, n=-math.inf)
+
+
+    @classmethod
+    def max(cls):
+        return cls(0, 0, n=math.inf)
 
 
     def __str__(self):
-        # TODO add pretty evaluation printing
-        return str(self._n)
-
-
-    def raw(self):
-        self._n
+        ML = self._ML
+        HL = self._HL
+        if   self._n >=  ML + HL + 2:
+            return "win in {}".format( ( 2 * ML + HL + 2) - self._n)
+        elif self._n >=  ML + 1:
+            return "hwin in {}".format(self._n - ( ML + 1))
+        elif self._n <= -ML - HL - 2:
+            return "loss in {}".format((-2 * ML - HL - 2) - self._n)
+        elif self._n <= -ML - 1:
+            return "loss in {}".format(self._n - (-ML - 1))
+        else:
+            return "draw in {}".format(self._n)
 
 
     def __neg__(self):
         self._n = -self._n
+        return self
 
 
     def __lt__(self, other):

@@ -1,6 +1,12 @@
 from player import Player
+from solver import Solver
 
-class MCTS(Player):
+
+class MCTS(Player, Solver):
+
+    def eval(self, board):
+        pass
+
 
     def move(self, board):
         pass

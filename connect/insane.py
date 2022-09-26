@@ -1,8 +1,14 @@
 from player import Player
+from solver import Solver
 
-class Insane(Player):
 
-    def play(self, board):
+class Insane(Player, Solver):
+
+    def eval(self, board):
+        pass
+
+
+    def move(self, board):
         pass
 
 

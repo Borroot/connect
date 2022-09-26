@@ -1,5 +1,6 @@
 from player import Player
 
+
 class Human(Player):
 
     def move(self, board):
