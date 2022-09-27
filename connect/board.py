@@ -23,6 +23,7 @@ class Board:
 
     def __str__(self):
         builder = ""
+
         for y in range(self.h):
             for x in range(self.w):
                 if   self.grid[y][x] == Board.X:
@@ -33,6 +34,12 @@ class Board:
                     builder += "."
                 if x < self.w - 1: builder += " "
             builder += "\n"
+
+        for x in range(self.w):
+            builder += str(x % 10)
+            if x < self.w - 1: builder += " "
+        builder += "\n"
+
         return builder
 
 
@@ -51,16 +58,11 @@ class Board:
         return copy
 
 
-    def from_codex(width, height, n, codex):
-        """ Create a board from a codex.
-
-        A codex is a string of numbers indicating all of the moves that have
-        been made. NOTE this only works if width <= 10.
-        """
-        assert width <= 10, "width > 10 is not supported with codices"
+    def from_seq(width, height, n, seq):
+        """ Create a board from a sequence of moves. """
         board = Board(width, height, n)
-        for c in codex:
-            board.play(int(c))
+        for m in seq:
+            board.play(m)
         return board
 
 

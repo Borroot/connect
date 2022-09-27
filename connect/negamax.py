@@ -8,10 +8,10 @@ from result import HResult, Result
 
 class Negamax(Player, Solver):
 
-    def search(self, node, depth, rootplayer, info, stats, timeout=None):
+    def search(self, node, depth, rootplayer, info, stats):
         stats.nodecount += 1
 
-        if timeout is not None and timeout.is_set():
+        if info.timeout is not None and info.timeout.is_set():
             return Eval(node.ML, info.heuristic.HL, n = 0)
 
         if (result := node.isover()) != None:
@@ -26,7 +26,7 @@ class Negamax(Player, Solver):
         for move in node.moves():
             child = node.clone()
             child.play(move)
-            value = max(value, -self.search(child, depth - 1, not rootplayer, info, stats, timeout))
+            value = max(value, -self.search(child, depth - 1, not rootplayer, info, stats))
 
         return value
 
@@ -36,10 +36,10 @@ class Negamax(Player, Solver):
 
 
     def _move(self, board, depth=None, heuristic=None, timeout=None):
-        Info = namedtuple("Info", ["rootcount", "heuristic"])
-        info = Info(board.movecount, heuristic)
+        Info = namedtuple("Info", ["rootcount", "heuristic", "timeout"])
+        info = Info(board.movecount, heuristic, timeout)
 
-        stats = Stats(board.clone(), depth, heuristic)
+        stats = Stats(board.clone(), str(self), depth, heuristic)
         if depth is None: depth = board.ML - board.movecount
 
         # if we might use the heuristic it should available
@@ -52,9 +52,9 @@ class Negamax(Player, Solver):
             child = board.clone()
             child.play(move)
 
-            value = -self.search(child, depth - 1, False, info, stats, timeout)
+            value = -self.search(child, depth - 1, False, info, stats)
 
-            if timeout is not None and timeout.is_set():
+            if info.timeout is not None and info.timeout.is_set():
                 stats.timeout = True
                 return stats
 

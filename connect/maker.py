@@ -1,6 +1,7 @@
 from board import Board
 from rand import Random
 from negamax import Negamax
+from alphabeta import Alphabeta
 from random import choice
 from heuristic import NopHeuristic, BadHeuristic
 from stats import Stats
@@ -32,6 +33,13 @@ def move(play):
 
     show()
 
+    if (result := board.isover()) is not None:
+        if result == result.DRAW:
+            print("It's a draw!")
+        else:
+            player = "X" if board.onturn == 1 else "O"
+            print("Player {} won!".format(player))
+
 
 def undo():
     global board, history
@@ -40,12 +48,12 @@ def undo():
         return
 
     history.pop()
-    board = Board.from_codex(board.w, board.h, board.N, "".join(map(str, history)))
+    board = Board.from_seq(board.w, board.h, board.N, history)
 
     show()
 
 
-def negamax(args):
+def solver(ai, args):
     if board.isover() is not None:
         print("game is already over")
         return
@@ -67,7 +75,7 @@ def negamax(args):
             print("please provide a valid timeout")
             return
 
-    result = Negamax().move(board, depth, heuristic(board.ML, board.N), timeout)
+    result = ai.move(board, depth, heuristic(board.ML, board.N), timeout)
 
     if isinstance(result, Stats):
         print("timeout reached at {}s".format(timeout))
@@ -77,8 +85,8 @@ def negamax(args):
         chosen = choice(bestmoves)
 
         print(
-            "{} -> {}".format(bestmoves, chosen),
-            "eval: {} ({})".format(bestvalue, bestvalue._n),
+            "\n{} -> {}".format(bestmoves, chosen),
+            "eval: {} ({})\n".format(bestvalue, bestvalue._n),
             stats,
             sep="\n"
         )
@@ -87,12 +95,49 @@ def negamax(args):
             move(chosen)
 
 
-def random():
+def random(args):
+    global board, history
+
     if board.isover() is not None:
         print("game is already over")
         return
 
-    move(Random().move(board))
+    number = 1
+
+    if len(args) > 0:
+        if not args[0].isdigit() or int(args[0]) < 1 or int(args[0]) > board.ML - board.movecount:
+            print("please provide a valid number")
+            return
+        number = int(args[0])
+
+    complete = False
+    while not complete:
+        board_clone = board.clone()
+        history_clone = history[:]
+
+        for i in range(number):
+            move = Random().move(board_clone)
+
+            board_clone.play(move)
+            history_clone.append(move)
+
+            if i == number - 1:
+                complete = True
+
+            if (result := board_clone.isover()) is not None:
+                break
+
+        if complete:
+            board = board_clone
+            history = history_clone
+            show()
+
+    if (result := board_clone.isover()) is not None:
+        if result == result.DRAW:
+            print("It's a draw!")
+        else:
+            player = "X" if board_clone.onturn == 1 else "O"
+            print("Player {} won!".format(player))
 
 
 def change_heuristic():
@@ -114,9 +159,10 @@ def change_heuristic():
 
 
 def new(args):
-    global board
+    global board, history
 
     if len(args) == 0:
+        history.clear()
         board = Board(board.w, board.h, board.N)
         show()
         return
@@ -129,6 +175,7 @@ def new(args):
         print("please provide integers")
         return
 
+    history.clear()
     board = Board(int(args[0]), int(args[1]), int(args[2]))
     show()
 
@@ -137,33 +184,18 @@ def load(args):
     global board, history
 
     if len(args) == 0:
-        print("please provide a codex")
-        return
-
-    if board.w > 10:
-        print("codex not supported for width > 10")
+        print("please provide a sequence")
         return
 
     if not all(arg.isdigit() for arg in args):
         print("please provide only digits")
 
-    codex = args[0]
-    w = board.w
-    h = board.h
-    N = board.N
-
-    if len(args) == 4:
-        w = int(args[0])
-        h = int(args[1])
-        N = int(args[2])
-        codex = args[3]
-
     history.clear()
-    board = Board(w, h, N)
+    board = Board(board.w, board.h, board.N)
 
-    for c in codex:
-        board.play(int(c))
-        history.append(int(c))
+    for move in list(map(int, args)):
+        board.play(move)
+        history.append(move)
 
     show()
 
@@ -181,7 +213,7 @@ def mirror():
     global board, history
 
     history = list(map(lambda x: board.w - 1 - x, history))
-    board = Board.from_codex(board.w, board.h, board.N, "".join(map(str, history)))
+    board = Board.from_seq(board.w, board.h, board.N, history)
 
     show()
 
@@ -204,11 +236,11 @@ def shift(args):
         return
 
     if not all(0 <= x + go < board.w for x in history):
-        print("sadly this shift is not possible")
+        print("impossible shift")
         return
 
     history = list(map(lambda x: x + go, history))
-    board = Board.from_codex(board.w, board.h, board.N, "".join(map(str, history)))
+    board = Board.from_seq(board.w, board.h, board.N, history)
 
     show()
 
@@ -220,8 +252,10 @@ def count():
 
 def show():
     print("\n", board, sep="", end="")
-    if board.w <= 10: print(*history, sep="")
-    if len(history) > 0: print()
+    if len(history) > 0:
+        print()
+        print(*history)
+    print()
 
 
 def help_msg():
@@ -230,14 +264,16 @@ def help_msg():
         "u undo: undo last move",
         # "e eval [t]: evaluate state",
         # "b best [t]: make best move",
-        "n negamax [d t]: make negamax move",
-        "r random: make random move",
+        "ab alphabeta [d t]: make alphabeta move",
+        "nx negamax [d t]: make negamax move",
+        "r random [n]: make n random moves",
         "h heuristic: choose heuristic",
         "n new [w h n]: new game",
-        "l load [w h n] codex: load game",
+        "l load seq: load game",
         "a automove: toggle automove",
         "m mirror: mirror the board",
-        "s shift r|l: shift the board",
+        "sl shiftl: shift the board left",
+        "sr shiftr: shift the board right",
         "c count: print movecount",
         "p print: print board",
         "q quit: quit the maker",
@@ -264,10 +300,12 @@ def maker():
             move(int(cmd))
         elif cmd == "u" or cmd == "undo":
             undo()
-        elif cmd == "n" or cmd == "negamax":
-            negamax(args)
+        elif cmd == "ab" or cmd == "alphabeta":
+            solver(Alphabeta(), args)
+        elif cmd == "nx" or cmd == "negamax":
+            solver(Negamax(), args)
         elif cmd == "r" or cmd == "random":
-            random()
+            random(args)
         elif cmd == "h" or cmd == "heuristic":
             change_heuristic()
         elif cmd == "n" or cmd == "new":
@@ -278,8 +316,10 @@ def maker():
             toggle_automove()
         elif cmd == "m" or cmd == "mirror":
             mirror()
-        elif cmd == "s" or cmd == "shift":
-            shift(args)
+        elif cmd == "sl" or cmd == "shiftl":
+            shift("l")
+        elif cmd == "sr" or cmd == "shiftr":
+            shift("r")
         elif cmd == "c" or cmd == "count":
             count()
         elif cmd == "p" or cmd == "print":

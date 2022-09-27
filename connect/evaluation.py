@@ -70,11 +70,11 @@ class Eval:
         ML = self._ML
         HL = self._HL
         if   self._n >=  ML + HL + 2:
-            return "win in {}".format( ( 2 * ML + HL + 2) - self._n)
+            return "win in {}".format((2 * ML + HL + 2) - self._n)
         elif self._n >=  ML + 1:
-            return "hvalue of {}".format( self._n - ( ML + 1))
+            return "hvalue of {}".format(self._n - ( ML + 1))
         elif self._n <= -ML - HL - 2:
-            return "loss in {}".format((-2 * ML - HL - 2) - self._n)
+            return "loss in {}".format(-((-2 * ML - HL - 2) - self._n))
         elif self._n <= -ML - 1:
             return "hvalue of {}".format(self._n - (-ML - 1))
         elif self._n == 0:
@@ -84,8 +84,7 @@ class Eval:
 
 
     def __neg__(self):
-        self._n = -self._n
-        return self
+        return Eval(self._ML, self._HL, n = -self._n)
 
 
     def __lt__(self, other):
