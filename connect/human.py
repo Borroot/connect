@@ -3,7 +3,7 @@ from player import Player
 
 class Human(Player):
 
-    def move(self, board):
+    def _move(self, board, depth=None, heuristic=None, timeout=None):
         symbol = "X" if board.onturn == 0 else "O"
         line = input("{} > ".format(symbol))
 

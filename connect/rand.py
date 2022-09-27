@@ -4,7 +4,7 @@ import random
 
 class Random(Player):
 
-    def move(self, board):
+    def _move(self, board, depth=None, heuristic=None, timeout=None):
         return random.choice(board.moves())
 
 

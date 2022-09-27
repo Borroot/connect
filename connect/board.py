@@ -8,12 +8,12 @@ class Board:
     E = 2  # empty
 
 
-    def __init__(self, width, height, n):
+    def __init__(self, width, height, N):
         """ Initialize a board with the given width and height. The game is won
-        if one of the players has n consecutive stones. """
+        if one of the players has N consecutive stones. """
         self.w = width
         self.h = height
-        self.n = n
+        self.N = N
         self.prev = None  # previous move column
         self.onturn = 0  # 0 represents player 1 and 1 represents player 2
         self.movecount = 0
@@ -42,7 +42,7 @@ class Board:
 
     def clone(self):
         """ Clone the board into a new object. """
-        copy = Board(self.w, self.h, self.n)
+        copy = Board(self.w, self.h, self.N)
         copy.prev = self.prev
         copy.onturn = self.onturn
         copy.movecount = self.movecount
@@ -103,27 +103,27 @@ class Board:
                 break
 
         # check horizontal
-        minx = max(0,          px - self.n + 1)
-        maxx = min(self.w - 1, px + self.n - 1)
+        minx = max(0,          px - self.N + 1)
+        maxx = min(self.w - 1, px + self.N - 1)
 
         count = 0
         for x in range(minx, maxx + 1):
             if self.grid[py][x] == onturn:
                 count += 1
-                if count == self.n:
+                if count == self.N:
                     return Result.WIN
             else:
                 count = 0
 
         # check vertical
-        miny = max(0,          py - self.n + 1)
-        maxy = min(self.h - 1, py + self.n - 1)
+        miny = max(0,          py - self.N + 1)
+        maxy = min(self.h - 1, py + self.N - 1)
 
         count = 0
         for y in range(miny, maxy + 1):
             if self.grid[y][px] == onturn:
                 count += 1
-                if count == self.n:
+                if count == self.N:
                     return Result.WIN
             else:
                 count = 0
@@ -137,7 +137,7 @@ class Board:
         for i in range(dist_top + 1 + dist_bot):
             if self.grid[top[1] + i][top[0] + i] == onturn:
                 count += 1
-                if count == self.n:
+                if count == self.N:
                     return Result.WIN
             else:
                 count = 0
@@ -151,7 +151,7 @@ class Board:
         for i in range(dist_top + 1 + dist_bot):
             if self.grid[top[1] + i][top[0] - i] == onturn:
                 count += 1
-                if count == self.n:
+                if count == self.N:
                     return Result.WIN
             else:
                 count = 0

@@ -16,7 +16,7 @@ class Eval:
     #     |        |         |          |      |        |        |         |         |        |         |
     # -2ML-HL-2 -ML-HL-2 -ML-HL-1     -ML-1   -ML       0        ML      ML+1     ML+HL+1  ML+HL+2   2ML+HL+2
 
-    def __init__(self, ML, HL, result=None, distance_or_heuristic=None, n=None):
+    def __init__(self, ML, HL, result=None, distance_or_heuristic=None, rootplayer=True, n=None):
         """Create an evaluation from the given result.
 
         :param ML: Movecount Limit which depends on the board used
@@ -34,9 +34,8 @@ class Eval:
         else:
             # Notice that we assume if n is None then result and
             # distance_or_heuristic are not None, the coder has to ensure this.
-            assert distance_or_heuristic >= 0
-            assert (isinstance(result,  Result) and distance_or_heuristic <= ML) or \
-                   (isinstance(result, HResult) and distance_or_heuristic <= HL)
+            assert (isinstance(result,  Result) and -ML <= distance_or_heuristic <= ML) or \
+                   (isinstance(result, HResult) and   0 <= distance_or_heuristic <= HL)
 
             if isinstance(result, Result):
                 # normal result with distance
@@ -45,7 +44,8 @@ class Eval:
                 elif result == Result.LOSS:
                     self._n = -2 * ML - HL - 2 + distance_or_heuristic
                 else:
-                    self._n = distance_or_heuristic
+                    if rootplayer: self._n =  distance_or_heuristic
+                    else:          self._n = -distance_or_heuristic
             else:
                 # heuristic result
                 if   result == HResult.WIN:
@@ -72,11 +72,13 @@ class Eval:
         if   self._n >=  ML + HL + 2:
             return "win in {}".format( ( 2 * ML + HL + 2) - self._n)
         elif self._n >=  ML + 1:
-            return "hwin in {}".format(self._n - ( ML + 1))
+            return "hvalue of {}".format( self._n - ( ML + 1))
         elif self._n <= -ML - HL - 2:
             return "loss in {}".format((-2 * ML - HL - 2) - self._n)
         elif self._n <= -ML - 1:
-            return "loss in {}".format(self._n - (-ML - 1))
+            return "hvalue of {}".format(self._n - (-ML - 1))
+        elif self._n == 0:
+            return "hvalue neutral".format(self._n)
         else:
             return "draw in {}".format(self._n)
 

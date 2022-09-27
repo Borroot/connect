@@ -8,7 +8,7 @@ class Alphabeta(Player, Solver):
         pass
 
 
-    def move(self, board):
+    def _move(self, board, depth=None, heuristic=None, timeout=None):
         pass
 
 
