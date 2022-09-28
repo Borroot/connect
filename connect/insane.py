@@ -46,6 +46,10 @@ class Insane(Player, Solver):
         pass
 
 
+    def iterative_deepening(self, node, depth, rootplayer, alpha, beta, info, stats):
+        pass
+
+
     def _move(self, board, depth=None, heuristic=None, timeout=None):
         Info = namedtuple("Info", ["rootcount", "heuristic", "timeout"])
         info = Info(board.movecount, heuristic, timeout)

@@ -19,6 +19,7 @@ class Board:
         self.movecount = 0
         self.ML = width * height  # movecount limit
         self.grid = [[Board.E] * width for _ in range(height)]
+        self.key = 0
 
 
     def __str__(self):
@@ -55,6 +56,7 @@ class Board:
         copy.movecount = self.movecount
         copy.ML = self.ML
         copy.grid = [row[:] for row in self.grid]
+        copy.key = self.key
         return copy
 
 
@@ -76,11 +78,14 @@ class Board:
         """ Play a stone in the given column, ranging from [0, n) (so excl n). """
         assert 0 <= x < self.w, "column {} is out of range".format(x)
         assert self.canplay(x), "cannot play in column {}".format(x)
+
         for y in reversed(range(self.h)):
             if self.grid[y][x] == Board.E:
                 self.grid[y][x] = self.onturn
                 self.prev = x
+                self.key += pow(3, x + self.w * y) * (self.onturn + 1)
                 break
+
         self.movecount += 1
         self.onturn ^= 1  # swap onturn
 
