@@ -3,7 +3,8 @@ from solver import Solver
 from evaluation import Eval
 from stats import Stats
 from collections import namedtuple
-from result import HResult, Result
+from result import Result
+import time
 
 
 class Alphabeta(Player, Solver):
@@ -12,16 +13,16 @@ class Alphabeta(Player, Solver):
         stats.nodecount += 1
 
         if info.timeout is not None and info.timeout.is_set():
-            return Eval(node.ML, info.heuristic.HL, n = 0)
+            return Eval(node.ML, info.heuristic.HL, const = Eval.UNDEFINED)
 
         if (result := node.isover()) != None:
             return Eval(node.ML, info.heuristic.HL, -result, node.movecount - info.rootcount, rootplayer)
 
         if depth == 0:
             stats.heuristic_used = True
-            return Eval(node.ML, info.heuristic.HL, *info.heuristic.eval(node))
+            return Eval(node.ML, info.heuristic.HL, heuristic = info.heuristic.eval(node))
 
-        value = Eval.min()
+        value = Eval(node.ML, info.heuristic.HL, const = Eval.MIN)
 
         for move in node.moves():
             child = node.clone()
@@ -30,7 +31,10 @@ class Alphabeta(Player, Solver):
             value = max(value, -self.search(child, depth - 1, not rootplayer, -beta, -alpha, info, stats))
             alpha = max(alpha, value)
 
-            if alpha >= beta: break
+            if alpha >= beta \
+                    and alpha != Eval(node.ML, info.heuristic.HL, const = Eval.UNDEFINED) \
+                    and beta  != Eval(node.ML, info.heuristic.HL, const = Eval.UNDEFINED):
+                break
 
         return value
 
@@ -43,17 +47,17 @@ class Alphabeta(Player, Solver):
         Info = namedtuple("Info", ["rootcount", "heuristic", "timeout"])
         info = Info(board.movecount, heuristic, timeout)
 
-        stats = Stats(board.clone(), str(self), depth, heuristic)
+        stats = Stats(board.clone(), str(self), time.time(), depth, heuristic)
         if depth is None: depth = board.ML - board.movecount
 
         # if we might use the heuristic it should available
         assert depth >= board.ML - board.movecount or heuristic is not None
 
-        alpha = Eval.min()
-        beta = Eval.max()
+        alpha = Eval(board.ML, info.heuristic.HL, const = Eval.MIN)
+        beta = Eval(board.ML, info.heuristic.HL, const = Eval.MAX)
 
         bestmoves = []
-        bestvalue = Eval.min()
+        bestvalue = Eval(board.ML, info.heuristic.HL, const = Eval.MIN)
 
         for move in board.moves():
             child = board.clone()
@@ -63,6 +67,7 @@ class Alphabeta(Player, Solver):
             alpha = max(alpha, value)
 
             if info.timeout is not None and info.timeout.is_set():
+                stats.end_time = time.time()
                 stats.timeout = True
                 return stats
 
@@ -73,6 +78,7 @@ class Alphabeta(Player, Solver):
             elif value == bestvalue:
                 bestmoves.append(move)
 
+        stats.end_time = time.time()
         return bestmoves, bestvalue, stats
 
 

@@ -2,6 +2,7 @@ from board import Board
 from rand import Random
 from negamax import Negamax
 from alphabeta import Alphabeta
+from insane import Insane
 from random import choice
 from heuristic import NopHeuristic, BadHeuristic
 from stats import Stats
@@ -266,6 +267,7 @@ def help_msg():
         # "b best [t]: make best move",
         "ab alphabeta [d t]: make alphabeta move",
         "nx negamax [d t]: make negamax move",
+        "in insane [d t]: make insane move",
         "r random [n]: make n random moves",
         "h heuristic: choose heuristic",
         "n new [w h n]: new game",
@@ -304,6 +306,8 @@ def maker():
             solver(Alphabeta(), args)
         elif cmd == "nx" or cmd == "negamax":
             solver(Negamax(), args)
+        elif cmd == "in" or cmd == "insane":
+            solver(Insane(), args)
         elif cmd == "r" or cmd == "random":
             random(args)
         elif cmd == "h" or cmd == "heuristic":

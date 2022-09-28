@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from result import HResult
 
 
 class Heuristic(ABC):
@@ -26,7 +25,7 @@ class NopHeuristic(Heuristic):
 
 
     def eval(self, board):
-        return HResult.DRAW, 0
+        return 0
 
 
 class BadHeuristic(Heuristic):
@@ -76,4 +75,4 @@ class BadHeuristic(Heuristic):
                         else:
                             break
 
-        return HResult.WIN, maxrow
+        return maxrow

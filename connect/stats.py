@@ -1,6 +1,6 @@
 class Stats:
 
-    def __init__(self, board, algorithm, maxdepth=None, heuristic=None):
+    def __init__(self, board, algorithm, start_time, maxdepth=None, heuristic=None):
         """An object to keep statistics of a search."""
         self.board = board
         self.algorithm = algorithm
@@ -9,14 +9,17 @@ class Stats:
         self.heuristic_used = False
         self.timeout = False
         self.nodecount = 0
+        self.start_time = start_time
+        self.end_time = None
 
 
     def __str__(self):
         builder = "\n".join([
+            "total time: {}ms".format(round(self.end_time - self.start_time, 3)),
             "timeout: {}".format(self.timeout),
-            "nodecount: {}".format(self.nodecount),
-            "maximum depth: {}".format(self.maxdepth),
+            "nodecount: {}\n".format(self.nodecount),
             "algorithm: {}".format(self.algorithm),
+            "max depth: {}".format(self.maxdepth),
             "heuristic: {}".format(self.heuristic),
             "heuristic used: {}".format(self.heuristic_used),
             "",
