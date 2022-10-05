@@ -79,7 +79,7 @@ def solver(ai, args):
     result = ai.move(board, depth, heuristic(board.ML, board.N), timeout)
 
     if isinstance(result, Stats):
-        print("timeout reached at {}s".format(timeout))
+        print("\ntimeout reached at {}s".format(timeout))
         print(result)
     else:
         bestmoves, bestvalue, stats = result
@@ -87,7 +87,7 @@ def solver(ai, args):
 
         print(
             "\n{} -> {}".format(bestmoves, chosen),
-            "eval: {} ({})\n".format(bestvalue, bestvalue._n),
+            "eval: {} ({})\n".format(bestvalue, bestvalue.n),
             stats,
             sep="\n"
         )

@@ -1,0 +1,86 @@
+\documentclass[a4paper]{article}
+
+\usepackage{adjustbox}
+
+\author{Bram Pulles}
+\title{\textbf{Connect N}}
+
+\begin{document}
+\maketitle
+
+\begin{table}[h]
+	\centering
+	\begin{adjustbox}{center}
+	\begin{tabular}{|c|c|c|c|c|c|c|c|}\hline
+	\textbf{test set} & \textbf{total} & \textbf{timeouts} & \textbf{mean time} & \textbf{max time} & \textbf{mean count} & \textbf{max count} & \textbf{count per sec} \\\hline
+	30-07 & 30 & 1 & 0.095417 & 2.011071 & 197 & 146619 & 38598 \\\hline
+	20-07 & 30 & 7 & 0.108103 & 2.660797 & 278 & 216104 & 52110 \\\hline
+	30-14 & 30 & 1 & 0.222108 & 5.05804 & 6886 & 323909 & 52655 \\\hline
+	20-14 & 30 & 4 & 0.921285 & 6.190709 & 61932 & 468116 & 67406 \\\hline
+	\end{tabular}
+	\end{adjustbox}
+	\caption{Insane AI with iterative deepening}
+	\label{tab: }
+\end{table}
+
+\begin{table}[h]
+	\centering
+	\begin{adjustbox}{center}
+	\begin{tabular}{|c|c|c|c|c|c|c|c|}\hline
+	\textbf{test set} & \textbf{total} & \textbf{timeouts} & \textbf{mean time} & \textbf{max time} & \textbf{mean count} & \textbf{max count} & \textbf{count per sec} \\\hline
+	30-07 & 30 & 0 & 0.13946 & 3.717605 & 1519 & 246017 & 45682 \\\hline
+	20-07 & 30 & 30 & 0 & 0 & 0 & 0 & 0 \\\hline
+	30-14 & 30 & 0 & 0.183881 & 0.819843 & 4072 & 50014 & 39368 \\\hline
+	20-14 & 30 & 28 & 8.018537 & 8.018537 & 670090 & 670090 & 81651 \\\hline
+	\end{tabular}
+	\end{adjustbox}
+	\caption{Insane AI with MTD(f)}
+	\label{tab: }
+\end{table}
+
+\begin{table}[h]
+	\centering
+	\begin{adjustbox}{center}
+	\begin{tabular}{|c|c|c|c|c|c|c|c|}\hline
+	\textbf{test set} & \textbf{total} & \textbf{timeouts} & \textbf{mean time} & \textbf{max time} & \textbf{mean count} & \textbf{max count} & \textbf{count per sec} \\\hline
+	30-07 & 30 & 1 & 0.095708 & 4.261424 & 377 & 339069 & 55753 \\\hline
+	20-07 & 30 & 8 & 0.118574 & 4.366139 & 660 & 335230 & 59456 \\\hline
+	30-14 & 30 & 1 & 0.415391 & 9.557776 & 20226 & 664495 & 61041 \\\hline
+	20-14 & 30 & 6 & 2.968389 & 9.57551 & 209221 & 643107 & 71115 \\\hline
+	\end{tabular}
+	\end{adjustbox}
+	\caption{Insane AI with iterative deepening and MTD(f)}
+	\label{tab: }
+\end{table}
+
+\begin{table}[h]
+	\centering
+	\begin{adjustbox}{center}
+	\begin{tabular}{|c|c|c|c|c|c|c|c|}\hline
+	\textbf{test set} & \textbf{total} & \textbf{timeouts} & \textbf{mean time} & \textbf{max time} & \textbf{mean count} & \textbf{max count} & \textbf{count per sec} \\\hline
+	30-07 & 30 & 0 & 0.031056 & 0.809639 & 2909 & 73283 & 90247 \\\hline
+	20-07 & 30 & 27 & 6.843755 & 9.205496 & 560175 & 824355 & 86068 \\\hline
+	30-14 & 30 & 0 & 0.058018 & 0.635897 & 4228 & 46229 & 79448 \\\hline
+	20-14 & 30 & 29 & 2.546612 & 2.546612 & 202736 & 202736 & 79610 \\\hline
+	\end{tabular}
+	\end{adjustbox}
+	\caption{Alpha beta pruning}
+	\label{tab: }
+\end{table}
+
+\begin{table}[h]
+	\centering
+	\begin{adjustbox}{center}
+	\begin{tabular}{|c|c|c|c|c|c|c|c|}\hline
+	\textbf{test set} & \textbf{total} & \textbf{timeouts} & \textbf{mean time} & \textbf{max time} & \textbf{mean count} & \textbf{max count} & \textbf{count per sec} \\\hline
+	30-07 & 30 & 2 & 0.253901 & 9.589689 & 28040 & 1051029 & 110008 \\\hline
+	20-07 & 30 & 30 & 0 & 0 & 0 & 0 & 0 \\\hline
+	30-14 & 30 & 1 & 0.719904 & 8.746326 & 67918 & 832406 & 96602 \\\hline
+	20-14 & 30 & 30 & 0 & 0 & 0 & 0 & 0 \\\hline
+	\end{tabular}
+	\end{adjustbox}
+	\caption{Negamax / minimax}
+	\label{tab: }
+\end{table}
+
+\end{document}

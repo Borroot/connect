@@ -1,5 +1,4 @@
 from player import Player
-from solver import Solver
 from evaluation import Eval
 from stats import Stats
 from collections import namedtuple
@@ -7,13 +6,13 @@ from result import Result
 import time
 
 
-class Negamax(Player, Solver):
+class Negamax(Player):
 
     def search(self, node, depth, rootplayer, info, stats):
         stats.nodecount += 1
 
         if info.timeout is not None and info.timeout.is_set():
-            return Eval(node.ML, info.heuristic.HL, const = Eval.UNDEFINED)
+            return Eval(const = Eval.UNDEFINED)
 
         if (result := node.isover()) != None:
             return Eval(node.ML, info.heuristic.HL, -result, node.movecount - info.rootcount, rootplayer)
@@ -22,7 +21,7 @@ class Negamax(Player, Solver):
             stats.heuristic_used = True
             return Eval(node.ML, info.heuristic.HL, heuristic = info.heuristic.eval(node))
 
-        value = Eval(node.ML, info.heuristic.HL, const = Eval.MIN)
+        value = Eval(const = Eval.MIN)
 
         for move in node.moves():
             child = node.clone()
@@ -30,10 +29,6 @@ class Negamax(Player, Solver):
             value = max(value, -self.search(child, depth - 1, not rootplayer, info, stats))
 
         return value
-
-
-    def eval(self, board):
-        pass
 
 
     def _move(self, board, depth=None, heuristic=None, timeout=None):
@@ -47,7 +42,7 @@ class Negamax(Player, Solver):
         assert depth >= board.ML - board.movecount or heuristic is not None
 
         bestmoves = []
-        bestvalue = Eval(board.ML, info.heuristic.HL, const = Eval.MIN)
+        bestvalue = Eval(const = Eval.MIN)
 
         for move in board.moves():
             child = board.clone()
