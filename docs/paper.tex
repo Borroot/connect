@@ -1,12 +1,592 @@
 \documentclass[a4paper]{article}
 
-\usepackage{adjustbox}
+\usepackage[nottoc,numbib]{tocbibind}
+\usepackage{hyperref}
+\usepackage{url}
+\usepackage{amsmath}
 
-\author{Bram Pulles}
-\title{\textbf{Connect N}}
+\usepackage{adjustbox}
+\usepackage{varwidth}
+
+\usepackage{algpseudocode}
+\usepackage{algorithm}
+\usepackage{listings}
+
+\author{Bram Pulles -- S1015194}
+\title{\textbf{Symbolic AI's for\\ Generalised Connect Four}}
 
 \begin{document}
 \maketitle
+
+\tableofcontents
+
+\pagebreak
+\section{Introduction}
+Connect Four is a widely known game, most of us probably played this as a kid
+for fun. What most people do not know is that Connect Four is actually strongly
+solved, i.e. for every state the best move is known
+\cite{wiki:strongly_solved}. In this assignment we are tasked with creating
+various search programs for Generalised Connect Four. In this version the board
+is of arbitrary width and height, and the number, $N$, of consecutive stones needed
+for a win is unspecified.
+
+I have implemented a negamax AI, which is equivalent to minmax, an alpha-beta
+pruning AI and an insane AI which contains a lot of extra's such as move
+ordening, a transposition table, iterative deepening and MTD(f).
+
+% TODO overview of chapters
+
+\section{Evaluation Space}
+Before we get into how all of the different algorithms work and how they are
+implemented we have to talk about evaluations. I have made a generalised
+evaluation space which is suited for the algorithms that I implemented.
+
+\begin{lstlisting}[basicstyle = \ttfamily\tiny, columns = fixed]
+ <- MIN                                           0                                             MAX ->
+ <--------------------------------------------------------------------------------------------------->
+    |   LOSS     | |   HEURISTIC    | |         DRAW           | |    HEURISTIC    | |     WIN    |
+    |            / \                / \           |            / \                 / \            |
+  L in 0   L in ML Hl at HL   Hl at 0 D in ML   D in 0   D in ML  Hw at 0   Hw at HL W in ML   W in 0
+    |        |         |          |      |        |        |         |         |        |         |
+-2ML-HL-2 -ML-HL-2 -ML-HL-1     -ML-1   -ML       0        ML      ML+1     ML+HL+1  ML+HL+2   2ML+HL+2
+\end{lstlisting}
+
+The evaluation space is shown above. Every evaluation of a board
+state is represented by a single integer. This makes it extremely fast to
+compare different evaluations.
+
+In the evaluation space we can see on the left side negative integers going to
+$-\infty$, while on the right side we have positive integers going to $\infty$.
+There are a lot of abbreviations in the diagram: L stands for Loss, D for Draw,
+W for Win, Hl for Heuristic loss and Hw for Heuristic win. We also have HL for
+Heuristic Limit, a heuristic value $v$ always satisfies $v \in [0,
+\text{HL}]$, and ML for Movecount Limit which is the maximum number of moves
+that can be made, i.e. the width of the board times the height of the board.
+
+\subsection{Win, Loss, Draw}
+The evaluation space is carefully constructed such that desired outcomes have a
+higher value than less desired outcomes. The best possible situation is a win
+in zero moves, while the worst possible situation is a loss in zero moves.
+
+Within the winning space we prefer evaluations which lead us to a win faster
+than other winning evaluations. The worst winning evaluation would be a win in
+ML moves.
+
+Within the losing space we prefer evaluations which lead us to a loss slower
+than other losing evaluations. The best losing evaluation would be a loss in ML
+moves. This makes intuitive sense when the opponent might not play perfectly.
+By trying to extent the game the chances of an imperfect player making a
+mistake increases which could change the game from losing to either a draw or
+winning situation.
+\\
+
+\noindent
+From the information given so far about the evaluation space we observe the
+most important property of all the evaluations, namely that all evaluations are
+zero-sum. This means that an advantage for one player is an equivalent loss for
+the other player \cite{wiki:zero_sum}. In other words, we have that any
+evaluation $e_{\text{player}_1}$ for player 1 and $e_{\text{player}_2}$ for
+player 2 at a certain node adds up to zero, i.e.
+
+$$e_{\text{player}_1} + e_{\text{player}_2} = 0$$
+$$e_{\text{player}_1} = -e_{\text{player}_2}$$
+
+This is extremely useful as we can now just negate an evaluation to change the
+perspective of the evaluation to the other player. This property is on the
+basis of negamax and often given as a requirement for minmax \cite{wiki:minmax}.
+\\
+
+\noindent
+Now that we have taken a look at losses and wins and that we have discussed the
+zero-sum property it is time to take a look at draws. Draws are usually
+considered to be neutral in search programs and an equal outcome for both
+players. However, this does not reflect differences in player strength. For
+example a better player would rather not play a draw against a worse player,
+while for the worse player this would constitute a good result.
+
+I have implemented negamax and various variants of negamax. Since negamax, when
+no heuristic is used, gives a perfect result it is safe to assume that the
+opponent will not be stronger. Because of this we can prefer later draws for
+the negamax player and earlier draws for the opponent. Considering this we give
+the positive draw space to the negamax player and the negative draw space to
+the opponent.
+
+\subsection{Heuristic}
+Apart from exact evaluations we can also have a heuristic evaluation. This
+represents an approximation of the outcome when to exact evaluation is unknown.
+In my program implementation I have an interface from which various heuristics
+can be defined. For every heuristic the zero-sum property must hold and the
+value must be between zero and a given limit. This limit is used in the
+evaluation space to create enough width for all the possible heuristic values.
+
+In the evaluation space we have two gaps for heuristic values. One on the
+positive side and one on the negative side. This way we can negate the
+heuristic value to change to the other player's perspective.
+
+Note that the heuristic space is outside of the draw space. This means that
+heuristic values which seem positive but can turn out into a loss are preferred
+over definite draws. If we have high confidence in our heuristic this is fine.
+If not we can also swap the heuristic and draw spaces. This is just a design
+choice that I have made.
+
+\section{Heuristics}
+My program contains two heuristics the given heuristic and a new heuristic.
+
+\subsection{Given Heuristic}
+Let me start by stating that the given heuristic is does not satisfy the
+zero-sum property, and this is quite the problem. So the given heuristic
+provides the number of consecutive stones the current player on turn has. This
+however, does not say anything about the relative position compared to the
+other player.
+
+Imagine that player 1 has three consecutive stones, then we have
+$e_{\text{player}_1} = 3$. Lets also say that we need four consecutive stones
+for a win, so $\text{HL} + 1 = N = 4$. There is no way that we can use this value
+to say anything about $e_{\text{player}_2}$. For example, we could say
+$e_{\text{player}_2} = -e_{\text{player}_1} = -3$. This would constitute the
+worst heuristic evaluation for player 2, however for all we know player 2 also
+has 3 in a row, therefore this is not a good translation. Another example could
+be to say $e_{\text{player}_2} = \text{HL} - e_{\text{player}_1} = 3 - 3 = 0$.
+This would be the best heuristic value for player 2, but maybe player 2 does
+not have any consecutive stones anywhere!
+
+The problem with the given heuristic is that it only gives information about
+one of the two players. This makes it that we could never change this value in
+a meaningful way to represent a heuristic evaluation for the other player.
+\\
+
+\noindent
+How would this be solved? In chess engines for example, a heuristic value often
+constitutes the \textit{difference} in points given by the pieces on the board,
+where every piece is assigned a static value\footnote{I am oversimplifying
+a lot here, see \url{https://www.chessprogramming.org/Score}.}. If we would do
+this in Connect Four, we could take the maximum number of consecutive for both
+players and take the difference. This does satisfy the zero-sum property. For
+example player 1 has 3 consecutive stones and player 2 only 1, then the
+heuristic value for player 1 is $e_{\text{player}_1} = 3 - 1 = 2$ and for
+player 2 is $e_{\text{player}_2} = -e_{\text{player}_1} = -2$. Now if player 2
+gets more consecutive stones the heuristic value reflects the advantage and the
+loss for both player 1 and player 2.
+
+I have implemented the heuristic as given in the assignment. This means that
+when this heuristic is used the outcome is incorrect. However, a fix would be
+trivial, namely by calling the heuristic twice and taking the difference.
+Albeit this would be extremely inefficient.
+
+\subsection{Nop Heuristic}
+I have also created a simple heuristic of my own so I can work with a depth
+bounded search. This heuristic always returns 0\footnote{In the code this is
+\texttt{Eval(const = Eval.UNDEFINED)}.}. This way we prefer to go through a
+path which has an undefined outcome over a definite loss, but we prefer a
+definite draw\footnote{Remember that the algorithm always has the positive draw
+space.} and definite win over an undefined outcome. This heuristic is meant
+as a filler to make depth bounded search work.
+
+\section{Negamax AI}
+
+\subsection{Algorithm}
+The first algorithm that I have implemented is negamax, this is equivalent to
+minmax but more elegant. The negamax algorithm makes use of the fact that
+minmax applies to zero-sum games and the fact that $max(a, b) = -min(-a, -b)$.
+Making use of these properties we can get rid of the case distinction in
+the minmax algorithm. The negamax algorithm is shown in \ref{alg: negamax}.
+
+\begin{algorithm}
+	\caption{Negamax}
+	\label{alg: negamax}
+	\begin{algorithmic}[1]
+		\Require node, depth, color, timeout
+		\Ensure node evaluation
+		\Function{negamax}{node, depth, color, timeout}
+			\If{timeout is reached}
+				\State \textbf{return} undefined
+			\EndIf
+			\If{node is over}
+				\State \textbf{return} color $\times$ evaluation of node
+			\EndIf
+
+			\If{depth = 0}
+				\State \textbf{return} color $\times$ heuristic evaluation of node
+			\EndIf
+
+			\State value := $-\infty$
+
+			\For{child of node}
+				\State value := max(value, $-$\Call{negamax}{child, $\text{depth}
+				- 1$, $-$color, timeout})
+			\EndFor
+
+			\State \textbf{return} value
+		\EndFunction
+	\end{algorithmic}
+\end{algorithm}
+
+The algorithm works pretty straightforward. The color represents which person
+is on the move\footnote{In my implementation this is called
+\texttt{rootplayer}.}. Note that I have added a timeout which when reached
+stops the execution of the algorithm, this is very useful when benchmarking or
+live interacting with the algorithm. The algorithm which calls the negamax
+function is a bit different and is shown in \ref{alg: negamax move}.
+
+\begin{algorithm}
+	\caption{Negamax move}
+	\label{alg: negamax move}
+	\begin{algorithmic}[1]
+		\Require node, depth, timeout
+		\Ensure best moves, node evaluation
+		\Function{move}{node, depth, timeout}
+			\State bestvalue := $-\infty$
+			\State bestmoves := $\emptyset$
+
+			\For{move at node}
+				\State child := play move at node
+				\State value := $-$\Call{negamax}{child, $\text{depth} - 1$, $-1$, timeout}
+
+				\If{timeout is reached}
+					\State \textbf{return} undefined
+				\EndIf
+
+				\If{value $>$ bestvalue}
+					\State bestvalue := value
+					\State bestmoves := move
+				\ElsIf{value = bestvalue}
+					\State bestmoves := bestmoves + move
+				\EndIf
+			\EndFor
+
+			\State \textbf{return} bestmoves, bestvalue
+		\EndFunction
+	\end{algorithmic}
+\end{algorithm}
+
+\subsection{Complexity}
+
+\section{Alpha-beta AI}
+
+\subsection{Algorithm}
+The second algorithm that I have implemented is alpha-beta pruning in the
+negamax algorithm. This is very similar to negamax, we just add an alpha-beta
+window. The alpha value represents the value that the current player is assured
+of, the beta value represents the value that the opponent is assured of.
+Whenever $\text{alpha} > \text{beta}$ we know that the opponent would never let
+us go down this path as they already have a better move somewhere else, so we
+can prune that branch. With alpha-beta pruning we still get the same result as
+with pure negamax. Note that $[\text{alpha}, \text{beta}]$ for player 1 is the
+same as $[-\text{beta}, -\text{alpha}]$ for player 2, this is repeatedly used
+in negamax. Negamax with alpha-beta pruning is shown in \ref{alg: alpha beta},
+the move generation is shown in \ref{alg: alpha beta move}.
+
+One peculiarity in my alpha-beta pruning implementation is that we do not want
+to have a cutoff when either the alpha or the beta value is undefined. This
+would lead to too early cutoffs and incorrect results.
+
+\begin{algorithm}
+	\caption{Negamax with alpha-beta pruning}
+	\label{alg: alpha beta}
+	\begin{algorithmic}[1]
+		\Require node, depth, color, timeout
+		\Ensure node evaluation
+		\Function{negamax}{node, depth, color, alpha, beta, timeout}
+			\If{timeout is reached}
+				\State \textbf{return} undefined
+			\EndIf
+			\If{node is over}
+				\State \textbf{return} color $\times$ evaluation of node
+			\EndIf
+
+			\If{depth = 0}
+				\State \textbf{return} color $\times$ heuristic evaluation of node
+			\EndIf
+
+			\State value := $-\infty$
+
+			\For{child of node}
+				\State value := max(value, \\\hspace{2cm}$-$\Call{negamax}{child, $\text{depth}
+				- 1$, $-$color, $-$beta, $-$alpha, timeout})
+				\If{alpha $>=$ beta \textbf{and} alpha $\neq$ undefined
+				\textbf{and} beta $\neq$ undefined}
+					\State \textbf{break}
+				\EndIf
+			\EndFor
+
+			\State \textbf{return} value
+		\EndFunction
+	\end{algorithmic}
+\end{algorithm}
+
+\begin{algorithm}
+	\caption{Negamax with alpha-beta pruning move}
+	\label{alg: alpha beta move}
+	\begin{algorithmic}[1]
+		\Require node, depth, timeout
+		\Ensure best moves, node evaluation
+		\Function{move}{node, depth, timeout}
+			\State alpha := $-\infty$
+			\State beta := $\infty$
+			\State bestvalue := $-\infty$
+			\State bestmoves := $\emptyset$
+
+			\For{move at node}
+				\State child := play move at node
+				\State value := $-$\Call{negamax}{child, $\text{depth} - 1$,
+				$-1$, $-$beta, $-$alpha, timeout}
+
+				\If{timeout is reached}
+					\State \textbf{return} undefined
+				\EndIf
+
+				\If{value $>$ bestvalue}
+					\State bestvalue := value
+					\State bestmoves := move
+				\ElsIf{value = bestvalue}
+					\State bestmoves := bestmoves + move
+				\EndIf
+			\EndFor
+
+			\State \textbf{return} bestmoves, bestvalue
+		\EndFunction
+	\end{algorithmic}
+\end{algorithm}
+
+\subsection{Complexity}
+
+\section{Insane AI}
+
+\subsection{Algorithm}
+The third algorithm that I have implemented is an extension of the alpha-beta
+pruning negamax algorithm with move ordening, a transposition table, iterative
+deepening and MTD(f).
+
+\subsubsection*{Move ordening}
+The first change is move ordening. Optimally, the alpha-beta pruning algorithm
+is run with the best move first every time, this would cause the maximum number
+of cutoffs. Ofcourse, we do not know the best move at first, but an
+approximation can already greatly increase the speed of the algorithm. To this
+end I use a simply move ordening algorithm which prefers columns in the middle
+of the board over columns towards the edges of the board. This can be easily
+achieved by sorted the moves according to their value given by the formula $w /
+2 - c$, where $w$ is the width of the board and $c \in [0, w)$ the number of a
+column representing a move.
+
+\subsubsection*{Transposition table}
+The second change is the addition of a transposition table, or TT for short. A
+TT is a memory construct which saves evaluations of states that we have
+visited. Whenever we visit a state a second time, we can take the evaluation
+from the TT and prune the branch.
+
+The implementation of such a table has to be fast. To this end I made a
+primitive hashtable without collision resolution. This table is implemented as
+an array with a prime number sized length. It has two functions, one for
+storing a value and a flag and one for retrieving the value and flag, the
+pseudocode can be seen in \ref{alg: table}.
+
+\begin{algorithm}
+	\caption{Table put and get function}
+	\label{alg: table}
+	\begin{algorithmic}[1]
+		\Function{put}{key, value, flag}
+			\State index := key \% table size
+			\State table[index] = (key, value, flag)
+		\EndFunction
+		\Function{get}{key}
+			\State index := key \% table size
+			\State entry := table[index]
+			\If{entry $\neq$ null}
+				\If{entry.key = key}
+					\State \textbf{return} entry
+				\EndIf
+			\EndIf
+			\State \textbf{return} null
+		\EndFunction
+	\end{algorithmic}
+\end{algorithm}
+
+The key generation for the transposition table should also be incredibly fast.
+In order to achieve this I have made a representation of the board in a ternary
+number. This ternary number uniquely identifies the board. The number functions
+as a flattened two dimensional array. The digits in the ternary number
+represent the state of every cell, a 0 for empty, 1 for a stone of player~1 and
+2 for a stone of player~2. For a move made in a colomn $c \in [0, w)$ I can now
+update the key with $key = key + (x + w \cdot y)^3 * (onturn + 1)$ with $onturn
+\in [0,1]$ and $w$ the width of the board. This achieves a constant time key
+generation.
+
+When we add the transposition table to the alpha-beta pruning negamax algorithm
+we have another complication. Some values may not be an exact evaluation
+because of alpha-beta cutoffs. Luckily for us these values can still provide a
+lowerbound or an upperbound. For example, when the best value we find in a
+negamax iteration is bigger than beta, we know a cutoff has occured, and we
+know that the value that we found is a lowerbound on the actual value of the
+node. Similary when the best value we find is smaller than the original alpha
+value we know that this is an upperbound for the actual value of the node.
+
+Using all of the information we have about the transposition table we can now
+add this to our algorithm. The new algorithm is shown in \ref{alg: insane}
+\cite{wiki:negamax}. Note that the move generation algorithm is the same as in
+\ref{alg: alpha beta move}.
+
+\begin{algorithm}
+	\caption{Negamax with alpha-beta pruning, move ordening and a TT}
+	\label{alg: insane}
+	\begin{algorithmic}[1]
+		\Require node, depth, color, timeout, table
+		\Ensure node evaluation
+		\Function{negamax}{node, depth, color, alpha, beta, timeout}
+			\If{timeout is reached}
+				\State \textbf{return} undefined
+			\EndIf
+
+			\State alpha\_original := alpha
+			\State entry := table.get(node.key)
+			\If{entry $\neq$ null}
+				\If{entry.flag = lowerbound}
+					\State alpha := max(alpha, entry.value)
+				\ElsIf{entry.flag = upperbound}
+					\State beta := min(beta, entry.value)
+				\Else
+					\State \textbf{return} entry.value
+				\EndIf
+			\EndIf
+
+			\If{node is over}
+				\State \textbf{return} color $\times$ evaluation of node
+			\EndIf
+
+			\If{depth = 0}
+				\State \textbf{return} color $\times$ heuristic evaluation of node
+			\EndIf
+
+			\State value := $-\infty$
+			\State moves := sorted moves from node
+
+			\For{move in moves}
+				\State child := move at node
+				\State value := max(value, \\\hspace{2cm}$-$\Call{negamax}{child, $\text{depth}
+				- 1$, $-$color, $-$beta, $-$alpha, timeout})
+				\If{alpha $>=$ beta \textbf{and} alpha $\neq$ undefined
+				\textbf{and} beta $\neq$ undefined}
+					\State \textbf{break}
+				\EndIf
+			\EndFor
+
+			\If{value $\neq$ undefined}
+				\If{value $\leq$ alpha\_original}
+					\State flag := upperbound
+				\ElsIf{value $\geq$ beta}
+					\State flag := lowerbound
+				\Else
+					\State flag := exact
+				\EndIf
+				\State table.put(node.key, value, flag)
+			\EndIf
+
+			\State \textbf{return} value
+		\EndFunction
+	\end{algorithmic}
+\end{algorithm}
+
+\subsubsection*{Iterative deepening}
+The third addition is iterative deepening. This combines the best of depth
+first search, low space complexity, with the best of breadth first search,
+optimality. Iterative deepening is relatively simple, the algorithm can be seen
+in \ref{alg: iterative deepening}. Using the iterative deepening algorithm is
+now as simple as replacing the call in algorithm \ref{alg: alpha beta move} at
+line 8 with the iterative deepening function. Note that instead of stopping
+when we do not have an undefined value anymore, we can also check whether this
+is a heuristic value and continue until we find an exact value.
+
+\begin{algorithm}
+	\caption{Iterative deepening}
+	\label{alg: iterative deepening}
+	\begin{algorithmic}[1]
+		\Require node, maxdepth, color, timeout, table
+		\Ensure node evaluation
+		\Function{iterdeep}{node, maxdepth, color, alpha, beta, timeout}
+			\State value := undefined
+			\For{depth in [0, maxdepth]}
+				\If{timeout is reached}
+					\State \textbf{return} value
+				\EndIf
+				\State value := \Call{negamax}{child, depth, $-1$, alpha, beta, timeout}
+				\If{value $\neq$ undefined}
+					\State \textbf{return} value
+				\EndIf
+			\EndFor
+		\EndFunction
+	\end{algorithmic}
+\end{algorithm}
+
+\subsubsection*{MTD(f)}
+At last I have added MTD(f) a type of zero-window search. This search
+iteratevely executes negamax with a window of just one big, causing a lot of
+cutoffs. Depending on the return value we can conclude whether the actual value
+is below or above our initial guess. This way we narrow down our guess until we
+find the correct one. The algorithm for MTD(f) can be seen in \ref{alg: mtdf}
+\cite{wiki:mtdf}.
+
+\begin{algorithm}
+	\caption{MTD(f)}
+	\label{alg: mtdf}
+	\begin{algorithmic}[1]
+		\Require node, depth, color, timeout, table
+		\Ensure node evaluation
+		\Function{mtdf}{node, depth, color, alpha, beta, timeout}
+			\State lowerbound := alpha
+			\State upperbound := beta
+			\State guess := 0
+			\While{lowerbound $<$ upperbound}
+				\State beta := max(g, lowerbound + 1)
+				\State guess := \Call{negamax}{child, depth, $-1$, beta - 1, beta, timeout}
+				\If{guess $<$ beta}
+					\State upperbound := guess
+				\Else
+					\State lowerbound := guess
+				\EndIf
+			\EndWhile
+		\EndFunction
+	\end{algorithmic}
+\end{algorithm}
+
+\subsection{Complexity}
+
+\section{Benchmarks}
+
+\subsection{Negamax AI}
+
+\begin{table}[h]
+	\centering
+	\begin{adjustbox}{center}
+	\begin{tabular}{|c|c|c|c|c|c|c|c|}\hline
+	\textbf{test set} & \textbf{total} & \textbf{timeouts} & \textbf{mean time} & \textbf{max time} & \textbf{mean count} & \textbf{max count} & \textbf{count per sec} \\\hline
+	30-07 & 30 & 2 & 0.253901 & 9.589689 & 28040 & 1051029 & 110008 \\\hline
+	20-07 & 30 & 30 & 0 & 0 & 0 & 0 & 0 \\\hline
+	30-14 & 30 & 1 & 0.719904 & 8.746326 & 67918 & 832406 & 96602 \\\hline
+	20-14 & 30 & 30 & 0 & 0 & 0 & 0 & 0 \\\hline
+	\end{tabular}
+	\end{adjustbox}
+	\caption{Negamax / minimax}
+	\label{tab: }
+\end{table}
+
+\subsection{Alpha-beta AI}
+
+\begin{table}[h]
+	\centering
+	\begin{adjustbox}{center}
+	\begin{tabular}{|c|c|c|c|c|c|c|c|}\hline
+	\textbf{test set} & \textbf{total} & \textbf{timeouts} & \textbf{mean time} & \textbf{max time} & \textbf{mean count} & \textbf{max count} & \textbf{count per sec} \\\hline
+	30-07 & 30 & 0 & 0.031056 & 0.809639 & 2909 & 73283 & 90247 \\\hline
+	20-07 & 30 & 27 & 6.843755 & 9.205496 & 560175 & 824355 & 86068 \\\hline
+	30-14 & 30 & 0 & 0.058018 & 0.635897 & 4228 & 46229 & 79448 \\\hline
+	20-14 & 30 & 29 & 2.546612 & 2.546612 & 202736 & 202736 & 79610 \\\hline
+	\end{tabular}
+	\end{adjustbox}
+	\caption{Alpha beta pruning}
+	\label{tab: }
+\end{table}
+
+\subsection{Insane AI}
+
 
 \begin{table}[h]
 	\centering
@@ -53,34 +633,15 @@
 	\label{tab: }
 \end{table}
 
-\begin{table}[h]
-	\centering
-	\begin{adjustbox}{center}
-	\begin{tabular}{|c|c|c|c|c|c|c|c|}\hline
-	\textbf{test set} & \textbf{total} & \textbf{timeouts} & \textbf{mean time} & \textbf{max time} & \textbf{mean count} & \textbf{max count} & \textbf{count per sec} \\\hline
-	30-07 & 30 & 0 & 0.031056 & 0.809639 & 2909 & 73283 & 90247 \\\hline
-	20-07 & 30 & 27 & 6.843755 & 9.205496 & 560175 & 824355 & 86068 \\\hline
-	30-14 & 30 & 0 & 0.058018 & 0.635897 & 4228 & 46229 & 79448 \\\hline
-	20-14 & 30 & 29 & 2.546612 & 2.546612 & 202736 & 202736 & 79610 \\\hline
-	\end{tabular}
-	\end{adjustbox}
-	\caption{Alpha beta pruning}
-	\label{tab: }
-\end{table}
+\subsection{Comparision}
 
-\begin{table}[h]
-	\centering
-	\begin{adjustbox}{center}
-	\begin{tabular}{|c|c|c|c|c|c|c|c|}\hline
-	\textbf{test set} & \textbf{total} & \textbf{timeouts} & \textbf{mean time} & \textbf{max time} & \textbf{mean count} & \textbf{max count} & \textbf{count per sec} \\\hline
-	30-07 & 30 & 2 & 0.253901 & 9.589689 & 28040 & 1051029 & 110008 \\\hline
-	20-07 & 30 & 30 & 0 & 0 & 0 & 0 & 0 \\\hline
-	30-14 & 30 & 1 & 0.719904 & 8.746326 & 67918 & 832406 & 96602 \\\hline
-	20-14 & 30 & 30 & 0 & 0 & 0 & 0 & 0 \\\hline
-	\end{tabular}
-	\end{adjustbox}
-	\caption{Negamax / minimax}
-	\label{tab: }
-\end{table}
+\section{Conclusion}
+
+\section{Discussion}
+% f*ck python
+
+\bibliographystyle{plain}
+\bibliography{bib}
+
 
 \end{document}
