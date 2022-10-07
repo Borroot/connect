@@ -1,9 +1,11 @@
 \documentclass[a4paper]{article}
 
+\usepackage[a4paper,margin=3cm, footskip=0.25in]{geometry}
 \usepackage[nottoc,numbib]{tocbibind}
 \usepackage{hyperref}
 \usepackage{url}
 \usepackage{amsmath}
+\usepackage{amssymb}
 
 \usepackage{adjustbox}
 \usepackage{varwidth}
@@ -32,9 +34,16 @@ for a win is unspecified.
 
 I have implemented a negamax AI, which is equivalent to minmax, an alpha-beta
 pruning AI and an insane AI which contains a lot of extra's such as move
-ordening, a transposition table, iterative deepening and MTD(f).
+ordering, a transposition table, iterative deepening and MTD(f).
 
-% TODO overview of chapters
+In this paper I start with an explanation of the evaluation space, as I made
+quite some nontrivial adjustments to the one given in the assignment. I then
+explain the negamax AI, the negamax AI with alpha-beta pruning and the further
+improved AI, pseudocode is used for all of these\footnote{I have implemented
+everything in Python.}. Next, I elaborate on the complexity of all of these
+algorithms and I discuss benchmark results for the different AI's. At last, I
+provide a conclusion and discussion of the results. In the appendix I have
+noted some small notes about my implementation.
 
 \section{Evaluation Space}
 Before we get into how all of the different algorithms work and how they are
@@ -184,7 +193,6 @@ as a filler to make depth bounded search work.
 
 \section{Negamax AI}
 
-\subsection{Algorithm}
 The first algorithm that I have implemented is negamax, this is equivalent to
 minmax but more elegant. The negamax algorithm makes use of the fact that
 minmax applies to zero-sum games and the fact that $max(a, b) = -min(-a, -b)$.
@@ -259,11 +267,9 @@ function is a bit different and is shown in \ref{alg: negamax move}.
 	\end{algorithmic}
 \end{algorithm}
 
-\subsection{Complexity}
-
+\pagebreak
 \section{Alpha-beta AI}
 
-\subsection{Algorithm}
 The second algorithm that I have implemented is alpha-beta pruning in the
 negamax algorithm. This is very similar to negamax, we just add an alpha-beta
 window. The alpha value represents the value that the current player is assured
@@ -301,7 +307,7 @@ would lead to too early cutoffs and incorrect results.
 			\State value := $-\infty$
 
 			\For{child of node}
-				\State value := max(value, \\\hspace{2cm}$-$\Call{negamax}{child, $\text{depth}
+				\State value := max(value, $-$\Call{negamax}{child, $\text{depth}
 				- 1$, $-$color, $-$beta, $-$alpha, timeout})
 				\If{alpha $>=$ beta \textbf{and} alpha $\neq$ undefined
 				\textbf{and} beta $\neq$ undefined}
@@ -348,27 +354,24 @@ would lead to too early cutoffs and incorrect results.
 	\end{algorithmic}
 \end{algorithm}
 
-\subsection{Complexity}
-
 \section{Insane AI}
 
-\subsection{Algorithm}
 The third algorithm that I have implemented is an extension of the alpha-beta
-pruning negamax algorithm with move ordening, a transposition table, iterative
+pruning negamax algorithm with move ordering, a transposition table, iterative
 deepening and MTD(f).
 
-\subsubsection*{Move ordening}
-The first change is move ordening. Optimally, the alpha-beta pruning algorithm
+\subsection{Move ordering}
+The first change is move ordering. Optimally, the alpha-beta pruning algorithm
 is run with the best move first every time, this would cause the maximum number
 of cutoffs. Ofcourse, we do not know the best move at first, but an
 approximation can already greatly increase the speed of the algorithm. To this
-end I use a simply move ordening algorithm which prefers columns in the middle
+end I use a simply move ordering algorithm which prefers columns in the middle
 of the board over columns towards the edges of the board. This can be easily
 achieved by sorted the moves according to their value given by the formula $w /
 2 - c$, where $w$ is the width of the board and $c \in [0, w)$ the number of a
 column representing a move.
 
-\subsubsection*{Transposition table}
+\subsection{Transposition table}
 The second change is the addition of a transposition table, or TT for short. A
 TT is a memory construct which saves evaluations of states that we have
 visited. Whenever we visit a state a second time, we can take the evaluation
@@ -426,7 +429,7 @@ add this to our algorithm. The new algorithm is shown in \ref{alg: insane}
 \ref{alg: alpha beta move}.
 
 \begin{algorithm}
-	\caption{Negamax with alpha-beta pruning, move ordening and a TT}
+	\caption{Negamax with alpha-beta pruning, move ordering and a TT}
 	\label{alg: insane}
 	\begin{algorithmic}[1]
 		\Require node, depth, color, timeout, table
@@ -461,7 +464,7 @@ add this to our algorithm. The new algorithm is shown in \ref{alg: insane}
 
 			\For{move in moves}
 				\State child := move at node
-				\State value := max(value, \\\hspace{2cm}$-$\Call{negamax}{child, $\text{depth}
+				\State value := max(value, $-$\Call{negamax}{child, $\text{depth}
 				- 1$, $-$color, $-$beta, $-$alpha, timeout})
 				\If{alpha $>=$ beta \textbf{and} alpha $\neq$ undefined
 				\textbf{and} beta $\neq$ undefined}
@@ -485,7 +488,7 @@ add this to our algorithm. The new algorithm is shown in \ref{alg: insane}
 	\end{algorithmic}
 \end{algorithm}
 
-\subsubsection*{Iterative deepening}
+\subsection{Iterative deepening}
 The third addition is iterative deepening. This combines the best of depth
 first search, low space complexity, with the best of breadth first search,
 optimality. Iterative deepening is relatively simple, the algorithm can be seen
@@ -516,7 +519,7 @@ is a heuristic value and continue until we find an exact value.
 	\end{algorithmic}
 \end{algorithm}
 
-\subsubsection*{MTD(f)}
+\subsection{MTD(f)}
 At last I have added MTD(f) a type of zero-window search. This search
 iteratevely executes negamax with a window of just one big, causing a lot of
 cutoffs. Depending on the return value we can conclude whether the actual value
@@ -547,11 +550,60 @@ find the correct one. The algorithm for MTD(f) can be seen in \ref{alg: mtdf}
 	\end{algorithmic}
 \end{algorithm}
 
-\subsection{Complexity}
+\section{Complexity}
+The negamax algorithm traverses the whole search tree. The size of the search
+tree is defined by the average branching factor $b$ and the depth $d$ of the
+tree. Unless the depth is bound by the user we have an upperbound of $d = w
+\cdot h$ with $w$ and $h$ being the width and height of the board. An
+upperbound on the branching factor is $b = w$. This gives us a complexity of
+$\mathcal{O}(b^d) = \mathcal{O}(w^{w \cdot h})$.
+
+The negamax algorithm with alpha-beta pruning provides an average improvement
+over the original negamax algorithm due to the beta cutoffs. In the worst case
+scenario there are no beta cutoffs and the complexity stays the same. In the
+best case scenario the move ordering for the search is optimal and the number
+of leaf nodes searched is about $\Omega(b^{d / 2})$ \cite{wiki:alphabeta}.
+
+The negamax algorithm with further improvements does not impact the complexity
+significantly\footnote{But it does greatly improve performance in practise!}.
+The move ordering makes the alpha-beta pruning more efficient and closer to the
+lowerbound given. The transposition table has constant lookup time, constant
+saving time and constant key generation. So the table does not introduce
+additional complexity, but it does cause more cutoffs. The complexity of
+iterative deepening is the same as the original negamax
+algorithm~\cite{wiki:iterdeep}.
+
+Regarding MTD(f), in the worst case scenario we increase our guess by one every
+time until we reach the actual value, we could do this a maximum of $2 \cdot w
+\cdot h$ times, namely half the draw space and the win or losing space,
+assuming $\text{HL} = 0$. This gives us an upperbound of $\mathcal{O}(w \cdot h
+\cdot w^{w \cdot h})$ which constitutes a minimal increase considering we use a
+transposition table and we get a large number of cutoffs. In the best case
+scenario we immediately guess the evaluation correctly and have the same as the
+original negamax search, but with a lot of cutoffs. It is extremely difficult
+to determine the average complexity of my improved algorithm as a lot of
+advanced statistical techniques are used in combination with each other, so
+this is out of scope of this project.
 
 \section{Benchmarks}
+Using the generator available in the code base I have made test cases which can
+be used to benchmark the different algorithms. The first number in the test set
+name denotes the number of moves already made. The second number in the test
+name is the maximum depth at which the solution can be found, with 7 having a
+minium of 2 and 14 a minimum of 7.
+
+All of the benchmarks are run with a timeout set at ten seconds. No depth bound
+is used and the default Connect Four settings are used. I did not have enough
+time to test for various Generalised Connect Four settings as generating test
+cases for this and the actual benchmarking takes a lot of time\footnote{And I
+am already grossly over the word limit\dots}.
 
 \subsection{Negamax AI}
+The benchmark results for the pure negamax AI can be seen in table \ref{tab:
+bench negamax}. The count gives the number of nodes that have been visited.
+Interestingly for both test sets starting with 20 moves all of the test cases
+reached a timeout. This is because negamax has to search the whole tree which
+at that point is simply too big to do in just ten seconds.
 
 \begin{table}[h]
 	\centering
@@ -565,10 +617,17 @@ find the correct one. The algorithm for MTD(f) can be seen in \ref{alg: mtdf}
 	\end{tabular}
 	\end{adjustbox}
 	\caption{Negamax / minimax}
-	\label{tab: }
+	\label{tab: bench negamax}
 \end{table}
 
 \subsection{Alpha-beta AI}
+The benchmark results for the negamax AI with alpha-beta pruning can be seen in
+table \ref{tab: bench alpha beta}. The count per second is slightly decreased
+compared to the plain negamax version, but this is probably because the search
+is now super short. The overal speed of the alpha-beta pruning version is way
+better, more than tenfold, compared to the plain version. This can be explained
+by the same tenfold decrease in nodes visited due to the cutoffs. However, we
+still get a lot of timeouts when the number of moves made is 20.
 
 \begin{table}[h]
 	\centering
@@ -581,12 +640,29 @@ find the correct one. The algorithm for MTD(f) can be seen in \ref{alg: mtdf}
 	20-14 & 30 & 29 & 2.546612 & 2.546612 & 202736 & 202736 & 79610 \\\hline
 	\end{tabular}
 	\end{adjustbox}
-	\caption{Alpha beta pruning}
-	\label{tab: }
+	\caption{Negamax with alpha-beta pruning}
+	\label{tab: bench alpha beta}
 \end{table}
 
 \subsection{Insane AI}
+For the insane AI I have run three benchmarks, one with iterative deepening,
+one with MTD(f) and one with both, see tables \ref{tab: bench insane iter},
+\ref{tab: bench insane mtdf} and \ref{tab: bench insane iter mtdf}. These
+results are actually very interesting.
 
+We can see from these tables that iterative deepening in particular has a big
+influence on performance. Where we saw a lot of timeouts before at the test
+sets which start with 20 moves, we now actually have most of them solved within
+the ten seconds timeout. The lower the distance of the solution, the faster we
+will find it with iterative deepening. When the distance becomes larger the
+effect of iterative deepening will become smaller.
+
+Interestingly, MTD(f) actually seems to create a decrease in performance. Both
+when used with and without iterative deepening. This is likely explained by the
+fact that the transposition table does not store all that many
+states.\footnote{This can be seen when using the interactive mode of the
+program, \texttt{maker}.} Because of this the overhead of recomputing new
+zero-window searches is big.
 
 \begin{table}[h]
 	\centering
@@ -600,7 +676,7 @@ find the correct one. The algorithm for MTD(f) can be seen in \ref{alg: mtdf}
 	\end{tabular}
 	\end{adjustbox}
 	\caption{Insane AI with iterative deepening}
-	\label{tab: }
+	\label{tab: bench insane iter}
 \end{table}
 
 \begin{table}[h]
@@ -615,7 +691,7 @@ find the correct one. The algorithm for MTD(f) can be seen in \ref{alg: mtdf}
 	\end{tabular}
 	\end{adjustbox}
 	\caption{Insane AI with MTD(f)}
-	\label{tab: }
+	\label{tab: bench insane mtdf}
 \end{table}
 
 \begin{table}[h]
@@ -630,18 +706,62 @@ find the correct one. The algorithm for MTD(f) can be seen in \ref{alg: mtdf}
 	\end{tabular}
 	\end{adjustbox}
 	\caption{Insane AI with iterative deepening and MTD(f)}
-	\label{tab: }
+	\label{tab: bench insane iter mtdf}
 \end{table}
 
-\subsection{Comparision}
-
 \section{Conclusion}
+Comparing all of the implemented algorithms, we can conclude that alpha-beta
+pruning gives a big performance increase, as well as the move ordering, the
+transposition table\footnote{The move ordering and TT performance increase are
+not tested in the benchmarks, but can be manually confirmed using the
+\texttt{maker}.} and iterative deepening, while MTD(f) does not.
 
 \section{Discussion}
-% f*ck python
+I have implemented everything in Python. This allowed me to do extremely fast
+prototyping. However, for search algorithms where speed is of utmost importance
+Python is everything but ideal. It would have been way better if we were
+allowed to use a low level language like C, C++ or Rust, this alone would
+greatly improve the capabilities of the AI's.
+
+Since we had to implement all of the AI's for Generalised Connect Four it is
+way more difficult to implement a bitboard. This is a loss in efficiency, but
+also a gain in generalisability.
+
+In the benchmark results we had a lot of timeouts. However, if I had more time
+I could have run the benchmarks with a depth bound. This would have given the
+algorithms a way better chance of finishing within the ten seconds timeout.
+Adding iterative deepening to the original negamax AI and the alpha-beta
+pruning version would have greatly increased their performance.
+
+The usefulness of the transposition table could have been further increased by
+keeping a separate key for a mirror board. This is a relatively small addition,
+and could yield a significant performance increase, especially for searches
+where only a few moves are made and a cutoff is big.
+
+Further heuristics could be added to the game. For example based on the board
+size $w \cdot h$ you can determine whether we should aim for winning moves on
+even or odd rows.
 
 \bibliographystyle{plain}
 \bibliography{bib}
 
+\appendix
+\section{Implementation}
+In this section I provide a few remarks on the implementation. Firstly, I have
+added an interactive environment to the program from which you can test all the
+algorithms and play around with all the settings. This interactive environment
+can be started by using the \texttt{maker}, use \texttt{?} to get a list of all
+the commands available.
+
+Secondly, I have reimplemented the \texttt{isover} function so that it only
+checks if the game is finished due to the last move that has been made.
+Especially on bigger boards this can greatly increase the performance of this
+function as we do not have to check the whole board anymore.
+
+Thirdly, I have not used an explicit tree structure but an implicit one which
+is present in the recursive structure of negamax. This is more space efficient.
+I was planning to also implement the Monte Carlo Tree search algorithm, and
+therefore also some kind of tree structure implementation for this, but due to
+time constraints I did not get to this.
 
 \end{document}

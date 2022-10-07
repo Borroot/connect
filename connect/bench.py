@@ -83,6 +83,7 @@ def run_tests(tests, solver, depth, heuristic, timeout):
 
 
 def main():
+    """Benchmark the provided tests and output a latex formatted table."""
     folder = "tests/sets/"
     testsets = [
         "30_07",

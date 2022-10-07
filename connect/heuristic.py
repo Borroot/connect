@@ -34,10 +34,6 @@ class BadHeuristic(Heuristic):
     DO NOT USE THIS HEURISTIC. As this heuristic violates the symmetry
     requirement of evaluation values in zero-sum games such as connect N.
     Because of this the search will give an incorrect answer.
-
-    Consider e.g. a heuristic value of 3 for player 1, this should be -3 for
-    player 2, however it could be that player 2 has two consecutive stones
-    therefore it would be -2, now we have a contradiction.
     """
 
     def __init__(self, ML, N):

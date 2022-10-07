@@ -16,8 +16,6 @@ def generate_board(movecount, width=7, height=6, N=4):
 
         for i in range(movecount):
             move = Random().move(board)
-            # bestmoves, _, _ = Insane().move(board, 3, NopHeuristic(width * height, N))
-            # move = random.choice(bestmoves)
 
             board.play(move)
             moves.append(move)
@@ -32,7 +30,8 @@ def generate_board(movecount, width=7, height=6, N=4):
             return board, moves
 
 
-if __name__ == "__main__":
+def main():
+    """Generate boards with results within a specified range, for benchmarking."""
     width = 7
     height = 6
     N = 4
@@ -72,3 +71,7 @@ if __name__ == "__main__":
 
             with open(folder + filename, "w") as f:
                 f.write(builder)
+
+
+if __name__ == "__main__":
+    main()

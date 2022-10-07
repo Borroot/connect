@@ -46,6 +46,7 @@ class Game:
 
 
 if __name__ == "__main__":
+    """Simulate one or multiple games."""
     players = [Random(), Random()]
     game = Game(*players)
     result = game.run(True)

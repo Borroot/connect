@@ -25,11 +25,16 @@ class Eval:
 
         :param ML: Movecount Limit which depends on the board used
         :param HL: Heuristic Limit which depends on the heurstic used
+        :param result: Win, Loss or Draw
+        :param distance: number of moves until the result is reached
+        :param rootplayer: whether the rootplayer is playing or not, used to
+        determine if we need to use the positive or negative draw space
         :returns: evaluation of the board
         """
         self._ML = ML
         self._HL = HL
 
+        # Create a constant evaluation
         if const is not None:
             if const is Eval.UNDEFINED:
                 self.n = 0
@@ -39,6 +44,7 @@ class Eval:
                 self.n = -math.inf
             return
 
+        # Create an evaluation from a result and distance
         if result is not None:
             if   result == Result.WIN:
                 self.n =  2 * ML + HL + 2 - distance
@@ -49,6 +55,7 @@ class Eval:
                 else:          self.n = -distance
             return
 
+        # Create an evaluation from a heuristic value
         if heuristic is not None:
             if   heuristic > 0:
                 self.n =  ML + 1 + heuristic
@@ -58,6 +65,7 @@ class Eval:
                 self.n = 0
             return
 
+        # Create an evaluation from a pure integer
         if n is not None:
             self.n = n
             return
