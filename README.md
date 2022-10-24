@@ -1,5 +1,5 @@
 # Generalised connect four engine
-This program includes an interactive environment from which all the different search algorithms can be used on top of various other interesting features. I also wrote a ![paper](docs/paper.pdf) explaining how everything works.
+This program includes an interactive environment from which all the different search algorithms can be used on top of various other interesting features. I also wrote a [paper](docs/paper.pdf) explaining how everything works.
 
 ```
 . . . . . . .
